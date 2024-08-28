@@ -22,7 +22,7 @@ We use `torch.hub` to make loading the model easy (no need to clone the reposito
 import torch
 import torchaudio
 
-dwavlm = torch.hub.load("lucadellalib/discrete-wavlm-codec", "discrete_wavlm_large", pretrained=True)
+dwavlm = torch.hub.load("lucadellalib/discrete-wavlm-codec", "discrete_wavlm_large", layer_ids=[6])
 dwavlm.eval().requires_grad_(False)
 sig, sample_rate = torchaudio.load("<path-to-audio-file>")
 sig = torchaudio.functional.resample(sig, sample_rate, dwavlm.sample_rate)

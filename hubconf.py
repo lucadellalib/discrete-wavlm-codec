@@ -39,19 +39,22 @@ dependencies = [
 
 
 def discrete_wavlm_large(
-    pretrained=True, cache_dir=huggingface_hub.constants.HUGGINGFACE_HUB_CACHE
+    layer_ids=(6,),
+    pretrained=True,
+    cache_dir=huggingface_hub.constants.HUGGINGFACE_HUB_CACHE,
 ) -> "Codec":
     """Load discrete WavLM codec.
 
     Arguments
     ---------
+    layer_ids:
+        The WavLM layer indices.
     pretrained:
         True to load the pretrained model weights, False otherwise.
     cache_dir:
         The model cache directory.
 
     """
-    layer_ids = [6]
     encoder = WavLM(
         source="microsoft/wavlm-large",
         save_path=cache_dir,
@@ -61,7 +64,7 @@ def discrete_wavlm_large(
     encoder = SBWav2Vec2ForwardWrapper(encoder, layer_ids)
 
     num_features = 1024
-    num_clusters = [512]
+    num_clusters = [512] * len(layer_ids)
     quantizer = KMeansMultiQuantizer(num_features, num_clusters)
 
     dropout = 0.1
@@ -100,7 +103,7 @@ def discrete_wavlm_large(
     upsample_initial_channel = 512
     upsample_factors = [10, 8, 2, 2]
     vocoder = HifiganVocoder(
-        embedding_dim=[num_features],
+        embedding_dim=[num_features] * len(layer_ids),
         out_channels=1,
         resblock_type=str(resblock_type),
         resblock_dilation_sizes=resblock_dilation_sizes,
@@ -112,9 +115,10 @@ def discrete_wavlm_large(
 
     if pretrained:
         repo_id = "lucadellalib/discrete-wavlm-codec"
+        variant = "_" + "-".join([str(x) for x in layer_ids]) + ".safetensors"
         for module, ckpt_file in zip(
             [quantizer, dequantizer, vocoder],
-            ["quantizer.safetensors", "dequantizer.safetensors", "vocoder.safetensors"],
+            [f"quantizer{variant}", f"dequantizer{variant}", f"vocoder{variant}"],
         ):
             local_path = huggingface_hub.hf_hub_download(
                 repo_id, ckpt_file, cache_dir=cache_dir
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     except ImportError:
         raise ImportError("`pip install torchaudio` to run this script")
 
-    codec = discrete_wavlm_large(pretrained=True)
+    codec = discrete_wavlm_large(pretrained=True, layer_ids=[1, 3, 6])
     print(
         f"Total number of parameters: {sum([x.numel() for x in codec.state_dict().values()]) / 1e6} M"
     )
