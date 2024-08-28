@@ -1,0 +1,5 @@
+huggingface-hub
+safetensors
+speechbrain
+torch
+transformers
